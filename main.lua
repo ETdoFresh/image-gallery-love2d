@@ -23,10 +23,20 @@ function love.load()
 end
 
 function loadImages()
-    local imageFolder = "images"
+    -- Detect base path (works both standalone and inside app launcher)
+    local baseDir = ""
+    local info = debug.getinfo(1, "S")
+    if info and info.source then
+        local src = info.source:gsub("^@", "")
+        baseDir = src:match("(.+/)main%.lua$") or ""
+    end
+    
+    local imageFolder = baseDir .. "images"
     
     -- Debug: Check if directory exists and what Love2D sees
     print("=== Image Loading Debug ===")
+    print("Detected base directory: " .. (baseDir ~= "" and baseDir or "(none - running standalone)"))
+    print("Image folder path: " .. imageFolder)
     print("Source directory: " .. love.filesystem.getSource())
     print("Save directory: " .. love.filesystem.getSaveDirectory())
     
