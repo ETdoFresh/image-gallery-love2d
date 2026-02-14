@@ -9,6 +9,10 @@ local gridCols = 4
 local gridRows = 2
 local scrollOffset = 0
 
+-- Input dedup (prevents double-press from D-pad firing both keyboard + gamepad events)
+local lastPressTime = {}
+local DEDUP_WINDOW = 0.08 -- 80ms
+
 function love.load()
     love.window.setTitle("Image Gallery - Grid View")
     loadImages()
@@ -153,7 +157,7 @@ function drawGrid()
     
     -- Auto-calculate grid layout
     gridCols = math.floor((w - padding * 2 + spacing) / (thumbWidth + spacing))
-    gridCols = math.max(1, gridCols)
+    gridCols = math.max(3, gridCols)
     
     love.graphics.printf("Image Gallery - Use Arrow Keys, Mouse, or Gamepad to Navigate", 
         0, 10, w, "center")
@@ -233,15 +237,21 @@ function drawFullscreen()
     end
 end
 
-function love.keypressed(key)
-    -- Don't process keys if no images loaded
-    if #images == 0 then return end
+function love.keypressed(key, scancode, isrepeat)
+    if isrepeat then return end
+    
+    local now = love.timer.getTime()
+    if lastPressTime[key] and (now - lastPressTime[key]) < DEDUP_WINDOW then return end
+    lastPressTime[key] = now
     
     if viewMode == "grid" then
         if key == "escape" then
             love.event.quit()
             return
-        elseif key == "return" or key == "space" then
+        end
+        -- Don't process nav keys if no images loaded
+        if #images == 0 then return end
+        if key == "return" or key == "space" then
             if images[selectedIndex] then
                 viewMode = "fullscreen"
                 love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
@@ -313,14 +323,24 @@ function love.mousepressed(x, y, button)
 end
 
 function love.gamepadpressed(joystick, button)
-    -- Don't process gamepad if no images loaded
-    if #images == 0 then return end
+    -- Map gamepad to key names for dedup
+    local map = {
+        dpup = "up", dpdown = "down", dpleft = "left", dpright = "right",
+        a = "return", b = "b_button",
+    }
+    local mapped = map[button] or button
+    local now = love.timer.getTime()
+    if lastPressTime[mapped] and (now - lastPressTime[mapped]) < DEDUP_WINDOW then return end
+    lastPressTime[mapped] = now
     
     if viewMode == "grid" then
         if button == "b" then
             love.event.quit()
             return
-        elseif button == "a" then
+        end
+        -- Don't process nav if no images loaded
+        if #images == 0 then return end
+        if button == "a" then
             if images[selectedIndex] then
                 viewMode = "fullscreen"
                 love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
