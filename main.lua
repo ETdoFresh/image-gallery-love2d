@@ -3,7 +3,7 @@
 
 local images = {}
 local thumbnails = {}
-local selectedIndex = 1
+local selectedIndex = 0  -- Start at 0, will be set to 1 if images loaded
 local viewMode = "grid" -- "grid" or "fullscreen"
 local gridCols = 4
 local gridRows = 2
@@ -12,7 +12,14 @@ local scrollOffset = 0
 function love.load()
     love.window.setTitle("Image Gallery - Grid View")
     loadImages()
-    createThumbnails()
+    
+    -- Set selectedIndex to 1 if we have images, keep at 0 if not
+    if #images > 0 then
+        selectedIndex = 1
+        createThumbnails()
+    else
+        print("WARNING: No images loaded. Gallery will be empty.")
+    end
 end
 
 function loadImages()
@@ -154,16 +161,22 @@ function drawGrid()
     end
     
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf(string.format("Image %d / %d", selectedIndex, #images),
-        0, h - 30, w, "center")
+    if #images > 0 then
+        love.graphics.printf(string.format("Image %d / %d", selectedIndex, #images),
+            0, h - 30, w, "center")
+    else
+        love.graphics.printf("No images found in images/ folder. Add .jpg, .jpeg, or .png files.",
+            0, h - 30, w, "center")
+    end
 end
 
 function drawFullscreen()
     love.graphics.setBackgroundColor(0, 0, 0)
     love.graphics.setColor(1, 1, 1)
     
-    if images[selectedIndex] then
-        local img = images[selectedIndex].image
+    local currentImage = images[selectedIndex]
+    if currentImage and currentImage.image then
+        local img = currentImage.image
         local w, h = love.graphics.getDimensions()
         
         -- Fit image to window
@@ -180,16 +193,26 @@ function drawFullscreen()
         love.graphics.setColor(1, 1, 1, 0.8)
         love.graphics.rectangle("fill", 0, h - 50, w, 50)
         love.graphics.setColor(0, 0, 0)
-        love.graphics.printf(images[selectedIndex].name, 0, h - 45, w, "center")
+        love.graphics.printf(currentImage.name, 0, h - 45, w, "center")
         love.graphics.printf("Press Escape/B/Right-Click to return to grid", 0, h - 25, w, "center")
+    else
+        -- No image to display
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf("No image available", 0, h/2, w, "center")
+        love.graphics.printf("Press Escape to return to grid", 0, h/2 + 30, w, "center")
     end
 end
 
 function love.keypressed(key)
+    -- Don't process keys if no images loaded
+    if #images == 0 then return end
+    
     if viewMode == "grid" then
         if key == "return" or key == "space" then
-            viewMode = "fullscreen"
-            love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            if images[selectedIndex] then
+                viewMode = "fullscreen"
+                love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            end
         elseif key == "right" then
             selectedIndex = math.min(selectedIndex + 1, #images)
             ensureVisible()
@@ -209,15 +232,22 @@ function love.keypressed(key)
             love.window.setTitle("Image Gallery - Grid View")
         elseif key == "right" then
             selectedIndex = math.min(selectedIndex + 1, #images)
-            love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            if images[selectedIndex] then
+                love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            end
         elseif key == "left" then
             selectedIndex = math.max(selectedIndex - 1, 1)
-            love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            if images[selectedIndex] then
+                love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            end
         end
     end
 end
 
 function love.mousepressed(x, y, button)
+    -- Don't process mouse if no images loaded
+    if #images == 0 then return end
+    
     if viewMode == "grid" and button == 1 then
         -- Check if clicked on a thumbnail
         local w, h = love.graphics.getDimensions()
@@ -235,10 +265,10 @@ function love.mousepressed(x, y, button)
             
             if x >= thumbX and x <= thumbX + thumbWidth and
                y >= thumbY and y <= thumbY + thumbHeight and
-               row >= 0 then
+               row >= 0 and images[i] then
                 selectedIndex = i
                 viewMode = "fullscreen"
-                love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+                love.window.setTitle("Image Gallery - " .. images[i].name)
                 break
             end
         end
@@ -250,10 +280,15 @@ function love.mousepressed(x, y, button)
 end
 
 function love.gamepadpressed(joystick, button)
+    -- Don't process gamepad if no images loaded
+    if #images == 0 then return end
+    
     if viewMode == "grid" then
         if button == "a" then
-            viewMode = "fullscreen"
-            love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            if images[selectedIndex] then
+                viewMode = "fullscreen"
+                love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            end
         elseif button == "dpright" then
             selectedIndex = math.min(selectedIndex + 1, #images)
             ensureVisible()
@@ -273,10 +308,14 @@ function love.gamepadpressed(joystick, button)
             love.window.setTitle("Image Gallery - Grid View")
         elseif button == "dpright" then
             selectedIndex = math.min(selectedIndex + 1, #images)
-            love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            if images[selectedIndex] then
+                love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            end
         elseif button == "dpleft" then
             selectedIndex = math.max(selectedIndex - 1, 1)
-            love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            if images[selectedIndex] then
+                love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
+            end
         end
     end
 end

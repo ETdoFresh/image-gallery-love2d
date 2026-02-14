@@ -1,5 +1,5 @@
 function love.conf(t)
-    t.identity = "image-gallery-love2d"
+    -- t.identity = "image-gallery-love2d" -- Disabled: prevents filesystem from seeing local images/ folder
     t.version = "11.4"
     t.console = true
     
