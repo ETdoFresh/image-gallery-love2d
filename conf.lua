@@ -1,7 +1,7 @@
 function love.conf(t)
     t.identity = "image-gallery-love2d"
     t.version = "11.4"
-    t.console = false
+    t.console = true
     
     t.window.title = "Image Gallery"
     t.window.icon = nil

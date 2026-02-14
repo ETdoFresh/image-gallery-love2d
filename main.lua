@@ -16,23 +16,56 @@ function love.load()
 end
 
 function loadImages()
-    local imageFolder = "images/"
-    local files = love.filesystem.getDirectoryItems(imageFolder)
+    local imageFolder = "images"
+    
+    -- Debug: Check if directory exists and what Love2D sees
+    print("=== Image Loading Debug ===")
+    print("Source directory: " .. love.filesystem.getSource())
+    print("Save directory: " .. love.filesystem.getSaveDirectory())
+    
+    -- Check if images directory exists
+    local info = love.filesystem.getInfo(imageFolder)
+    if info then
+        print("images/ folder found, type: " .. info.type)
+    else
+        print("ERROR: images/ folder not found!")
+        print("Trying to get directory items anyway...")
+    end
+    
+    local success, files = pcall(love.filesystem.getDirectoryItems, imageFolder)
+    if not success then
+        print("ERROR calling getDirectoryItems: " .. tostring(files))
+        return
+    end
+    
+    print("Files found in images/: " .. #files)
+    for i, file in ipairs(files) do
+        print("  " .. i .. ": " .. file)
+    end
     
     for _, file in ipairs(files) do
         local extension = file:match("^.+%.(.+)$")
+        print("Checking file: " .. file .. ", extension: " .. tostring(extension))
+        
         if extension and (extension:lower() == "jpg" or extension:lower() == "jpeg" or extension:lower() == "png") then
-            local imagePath = imageFolder .. file
+            local imagePath = imageFolder .. "/" .. file
+            print("  Attempting to load: " .. imagePath)
             local success, imageData = pcall(love.graphics.newImage, imagePath)
             if success then
+                print("  ✓ Successfully loaded!")
                 table.insert(images, {
                     path = imagePath,
                     image = imageData,
                     name = file
                 })
+            else
+                print("  ✗ Failed to load: " .. tostring(imageData))
             end
         end
     end
+    
+    print("Total images loaded: " .. #images)
+    print("======================")
     
     if #images == 0 then
         print("No images found in images/ folder!")
