@@ -8,6 +8,7 @@ local viewMode = "grid" -- "grid" or "fullscreen"
 local gridCols = 4
 local gridRows = 2
 local scrollOffset = 0
+local showInfo = false -- toggle info overlay in fullscreen
 
 -- Input dedup (prevents double-press from D-pad firing both keyboard + gamepad events)
 local lastPressTime = {}
@@ -223,12 +224,15 @@ function drawFullscreen()
         
         love.graphics.draw(img, x, y, 0, scale, scale)
         
-        -- Draw filename and instructions
-        love.graphics.setColor(1, 1, 1, 0.8)
-        love.graphics.rectangle("fill", 0, h - 50, w, 50)
-        love.graphics.setColor(0, 0, 0)
-        love.graphics.printf(currentImage.name, 0, h - 45, w, "center")
-        love.graphics.printf("Press Escape/B/Right-Click to return to grid", 0, h - 25, w, "center")
+        -- Only show info bar when toggled on
+        if showInfo then
+            love.graphics.setColor(0, 0, 0, 0.7)
+            love.graphics.rectangle("fill", 0, h - 70, w, 70)
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.printf(currentImage.name, 0, h - 65, w, "center")
+            love.graphics.printf(string.format("%dx%d  |  Image %d / %d", img:getWidth(), img:getHeight(), selectedIndex, #images), 0, h - 45, w, "center")
+            love.graphics.printf("Escape/B = back  |  Select/Start = toggle info", 0, h - 25, w, "center")
+        end
     else
         -- No image to display
         love.graphics.setColor(1, 1, 1)
@@ -272,7 +276,10 @@ function love.keypressed(key, scancode, isrepeat)
     elseif viewMode == "fullscreen" then
         if key == "escape" then
             viewMode = "grid"
+            showInfo = false
             love.window.setTitle("Image Gallery - Grid View")
+        elseif key == "tab" or key == "i" then
+            showInfo = not showInfo
         elseif key == "right" then
             selectedIndex = math.min(selectedIndex + 1, #images)
             if images[selectedIndex] then
@@ -315,10 +322,16 @@ function love.mousepressed(x, y, button)
                 break
             end
         end
-    elseif viewMode == "fullscreen" and button == 2 then
-        -- Right click to go back
-        viewMode = "grid"
-        love.window.setTitle("Image Gallery - Grid View")
+    elseif viewMode == "fullscreen" then
+        if button == 2 then
+            -- Right click to go back
+            viewMode = "grid"
+            showInfo = false
+            love.window.setTitle("Image Gallery - Grid View")
+        elseif button == 1 then
+            -- Left click to toggle info
+            showInfo = not showInfo
+        end
     end
 end
 
@@ -361,7 +374,10 @@ function love.gamepadpressed(joystick, button)
     elseif viewMode == "fullscreen" then
         if button == "b" then
             viewMode = "grid"
+            showInfo = false
             love.window.setTitle("Image Gallery - Grid View")
+        elseif button == "start" or button == "x" then
+            showInfo = not showInfo
         elseif button == "dpright" then
             selectedIndex = math.min(selectedIndex + 1, #images)
             if images[selectedIndex] then
