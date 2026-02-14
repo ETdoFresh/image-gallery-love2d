@@ -23,20 +23,40 @@ function love.load()
 end
 
 function loadImages()
-    -- Detect base path (works both standalone and inside app launcher)
-    local baseDir = ""
+    -- Try multiple paths to find the images folder
+    -- This handles both standalone mode and running inside app launchers
+    local candidates = {
+        "images",                                              -- standalone: love .
+        "apps/ETdoFresh/image-gallery-love2d/main/images",    -- ets-apps-love2d launcher
+    }
+    
+    -- Also try to detect via debug.getinfo
     local info = debug.getinfo(1, "S")
     if info and info.source then
         local src = info.source:gsub("^@", "")
-        baseDir = src:match("(.+/)main%.lua$") or ""
+        local dir = src:match("(.+/)main%.lua$")
+        if dir then
+            table.insert(candidates, 2, dir .. "images")
+        end
     end
     
-    local imageFolder = baseDir .. "images"
+    local imageFolder = nil
+    for _, candidate in ipairs(candidates) do
+        local cInfo = love.filesystem.getInfo(candidate)
+        if cInfo and cInfo.type == "directory" then
+            imageFolder = candidate
+            break
+        end
+    end
     
-    -- Debug: Check if directory exists and what Love2D sees
+    if not imageFolder then
+        print("ERROR: Could not find images/ folder in any known location:")
+        for _, c in ipairs(candidates) do print("  tried: " .. c) end
+        return
+    end
+    
     print("=== Image Loading Debug ===")
-    print("Detected base directory: " .. (baseDir ~= "" and baseDir or "(none - running standalone)"))
-    print("Image folder path: " .. imageFolder)
+    print("Image folder found at: " .. imageFolder)
     print("Source directory: " .. love.filesystem.getSource())
     print("Save directory: " .. love.filesystem.getSaveDirectory())
     
@@ -218,7 +238,10 @@ function love.keypressed(key)
     if #images == 0 then return end
     
     if viewMode == "grid" then
-        if key == "return" or key == "space" then
+        if key == "escape" then
+            love.event.quit()
+            return
+        elseif key == "return" or key == "space" then
             if images[selectedIndex] then
                 viewMode = "fullscreen"
                 love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
@@ -294,7 +317,10 @@ function love.gamepadpressed(joystick, button)
     if #images == 0 then return end
     
     if viewMode == "grid" then
-        if button == "a" then
+        if button == "b" then
+            love.event.quit()
+            return
+        elseif button == "a" then
             if images[selectedIndex] then
                 viewMode = "fullscreen"
                 love.window.setTitle("Image Gallery - " .. images[selectedIndex].name)
